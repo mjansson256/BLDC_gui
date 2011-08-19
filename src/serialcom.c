@@ -143,10 +143,11 @@ int serialcom_read(int * fd, char * ch)
 int serialcom_write(int * fd, char * str)
 {
 	int n;
-
-	n = write(*fd, str, strlen(str));
-	if(n < strlen(str)) {
-		printf("Oh, error sending %i bytes. Only sent %i bytes\n", strlen(str), n);
+	if(*fd) {
+		n = write(*fd, str, strlen(str));
+		if(n < strlen(str)) {
+			printf("Oh, error sending %i bytes. Only sent %i bytes\n", strlen(str), n);
+		}
 	}
 	return n;
 }

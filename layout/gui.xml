@@ -191,11 +191,12 @@
                         <property name="visible">True</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkButton" id="button_unused">
-                            <property name="label" translatable="yes">Unused</property>
+                          <object class="GtkEntry" id="entry_serial_port">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
+                            <property name="max_length">32</property>
+                            <property name="invisible_char">•</property>
+                            <property name="text" translatable="yes">/dev/ttyACM0</property>
                           </object>
                         </child>
                       </object>
@@ -203,7 +204,7 @@
                     <child type="label">
                       <object class="GtkLabel" id="label3">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Unused</property>
+                        <property name="label" translatable="yes">Serial port:</property>
                         <property name="use_markup">True</property>
                       </object>
                     </child>

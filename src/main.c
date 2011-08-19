@@ -58,20 +58,17 @@ int statusbar_context_id;
 
 void on_window_destroy (GtkObject *object, gpointer user_data)
 {
-        gtk_main_quit();
-}
-
-
-void m_gtk_main_quit(GtkWidget * widget, gpointer data)
-{
-	g_print("Quit\n");
 	gtk_main_quit();
 }
 
+void m_button_quit(GtkWidget * widget, gpointer data)
+{
+	gtk_main_quit();
+}
 
 void print_statusbar(char * str)
 {
-	//~ gtk_statusbar_remove_all(GTK_STATUSBAR(statusbar), statusbar_context_id);
+	gtk_statusbar_remove_all(GTK_STATUSBAR(statusbar), statusbar_context_id);
 	gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, str);
 	serialcom_write(&fd, str);
 }
@@ -104,6 +101,13 @@ void m_button_disconnect_clicked(GtkWidget * widget, gpointer data)
 	g_print("Disconnecting");
 	serialcom_destroy(&fd);
 	connected = FALSE;
+}
+
+void m_entry_serial_port_changed(GtkWidget * widget, gpointer data)
+{
+	//TODO: Get widget text. Put into a variable, char * serial_port,
+	//use serial_port for opening serial port, duh.
+	//
 }
 /************************************************************************/
 
@@ -205,8 +209,10 @@ void m_ramp_clicked(GtkWidget * widget, gpointer data)
 void m_vscale_rpm_value_changed(GtkAdjustment * widget,  gpointer data)
 {
 	char str[STRING_MAX_LEN];
-	snprintf(str, STRING_MAX_LEN, "Setting RPM: %i", (gint)widget->value);
+	//~ snprintf(str, STRING_MAX_LEN, "Setting RPM: %i", (gint)widget->value);
+	snprintf(str, STRING_MAX_LEN, "Setting RPM: %i\n", (gint)gtk_range_get_value(GTK_RANGE(widget)));
 	print_statusbar(str);
+	serialcom_write(&fd, str);
 }
 
 int main(int argc, char * argv[])
@@ -221,10 +227,13 @@ int main(int argc, char * argv[])
 	GtkWidget * button_disconnect;
 	GtkWidget * button_status;
 	GtkWidget * button_quit;
+	GtkWidget * entry_serial_port;
+
 	GtkWidget * togglebutton_motor_start;
 	GtkWidget * button_motor_stop;
 	GtkWidget * togglebutton_motor_pause;
 	GtkWidget * button_reset_mcu;
+
 
 	GtkWidget * vscale_rpm;
 
@@ -240,10 +249,21 @@ int main(int argc, char * argv[])
 	g_signal_connect(GTK_OBJECT(togglebutton_connect), "toggled", G_CALLBACK(m_togglebutton_connect_toggled), NULL);
 
 	button_disconnect = GTK_WIDGET(gtk_builder_get_object(builder, "button_disconnect"));
-	g_signal_connect(GTK_OBJECT(button_disconnect), "clicked", G_CALLBACK(m_button_disconnect_clicked));
+	g_signal_connect(GTK_OBJECT(button_disconnect), "clicked", G_CALLBACK(m_button_disconnect_clicked), NULL);
+
+
+	entry_serial_port = GTK_WIDGET(gtk_builder_get_object(builder, "entry_serial_port"));
+	g_signal_connect(GTK_OBJECT(entry_serial_port), "editing-done", G_CALLBACK(m_entry_serial_port_changed), NULL);
+
 
 	vscale_rpm = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_rpm"));
-	g_signal_connect(GTK_OBJECT(vscale_rpm), "value-change", G_CALLBACK(m_vscale_rpm_value_changed), NULL);
+	g_signal_connect(GTK_OBJECT(vscale_rpm), "value-changed", G_CALLBACK(m_vscale_rpm_value_changed), NULL);
+
+	button_quit = GTK_WIDGET(gtk_builder_get_object(builder, "button_quit"));
+	g_signal_connect(GTK_OBJECT(button_quit), "clicked", G_CALLBACK(m_button_quit), NULL);
+
+	statusbar = GTK_WIDGET(gtk_builder_get_object(builder, "statusbar"));
+
 
 	gtk_widget_show(window);
 
