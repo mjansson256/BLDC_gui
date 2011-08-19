@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include "serialcom.h"
 
+//Serial port variabels
 int fd;
+const char * device = "/dev/ttyUSB0";
 
 #define ON 1
 #define OFF 0
@@ -51,8 +53,13 @@ GtkWidget * spin_button_ramp_time;
 #define SCALE_DEFAULT_VALUE 40
 
 //Status bar
-GtkWidget * status_bar;
-int status_bar_context_id;
+GtkWidget * statusbar;
+int statusbar_context_id;
+
+void on_window_destroy (GtkObject *object, gpointer user_data)
+{
+        gtk_main_quit();
+}
 
 
 void m_gtk_main_quit(GtkWidget * widget, gpointer data)
@@ -61,11 +68,44 @@ void m_gtk_main_quit(GtkWidget * widget, gpointer data)
 	gtk_main_quit();
 }
 
+
 void print_statusbar(char * str)
 {
-	gtk_statusbar_remove_all(GTK_STATUSBAR(status_bar), status_bar_context_id);
-	gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, str);
+	//~ gtk_statusbar_remove_all(GTK_STATUSBAR(statusbar), statusbar_context_id);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, str);
+	serialcom_write(&fd, str);
 }
+
+
+/************************************************************************
+ * Callback functions for serial connect/disconnect
+ ************************************************************************/
+static unsigned char connected;
+void m_togglebutton_connect_toggled(GtkWidget * widget, gpointer data)
+{
+	switch(connected) {
+		case FALSE:
+			g_print("Connecting");
+			if(serialcom_init_old(&fd, "/dev/ttyACM0") == OK) {
+				connected = TRUE;
+			}
+			break;
+
+		case TRUE:
+			g_print("disconnecting");
+			serialcom_destroy(&fd);
+			connected = FALSE;
+			break;
+	}
+}
+
+void m_button_disconnect_clicked(GtkWidget * widget, gpointer data)
+{
+	g_print("Disconnecting");
+	serialcom_destroy(&fd);
+	connected = FALSE;
+}
+/************************************************************************/
 
 void m_button_clicked(GtkWidget * widget,  gpointer data)
 {
@@ -91,14 +131,15 @@ volatile char option1;
 void m_clicked_option1(GtkWidget * widget, gpointer data)
 {
 	option1 ^= 1;
+	g_print("Here");
 	switch(option1) {
 		case ON:
 			g_print("Option1 on\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option1 on");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option1 on");
 			break;
 		case OFF:
 			g_print("Option1 off\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option1 off");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option1 off");
 			break;
 		default:
 			g_print("Strange\n");
@@ -112,11 +153,11 @@ void m_clicked_option2(GtkWidget * widget, gpointer data)
 	switch(option2) {
 		case ON:
 			g_print("Option2 on\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option2 on");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option2 on");
 			break;
 		case OFF:
 			g_print("Option2 off\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option2 off");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option2 off");
 			break;
 		default:
 			g_print("Strange\n");
@@ -130,11 +171,11 @@ void m_clicked_option3(GtkWidget * widget, gpointer data)
 	switch(option3) {
 		case ON:
 			g_print("Option3 on\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option3 on");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option3 on");
 			break;
 		case OFF:
 			g_print("Option3 off\n");
-			gtk_statusbar_push(GTK_STATUSBAR(status_bar), status_bar_context_id, "Option3 off");
+			gtk_statusbar_push(GTK_STATUSBAR(statusbar), statusbar_context_id, "Option3 off");
 			break;
 		default:
 			g_print("Strange\n");
@@ -161,7 +202,7 @@ void m_ramp_clicked(GtkWidget * widget, gpointer data)
 }
 
 #define STRING_MAX_LEN 0x80
-void m_scale_speed_changed(GtkAdjustment * widget,  gpointer data)
+void m_vscale_rpm_value_changed(GtkAdjustment * widget,  gpointer data)
 {
 	char str[STRING_MAX_LEN];
 	snprintf(str, STRING_MAX_LEN, "Setting RPM: %i", (gint)widget->value);
@@ -171,27 +212,48 @@ void m_scale_speed_changed(GtkAdjustment * widget,  gpointer data)
 int main(int argc, char * argv[])
 {
 	char ch;
-	serialcom_init_old(&fd);
+
+	//~ serialcom_init_old(&fd, "/dev/ttyACM0");
 
 	GtkBuilder * builder;
 	GtkWidget * window;
+	GtkWidget * togglebutton_connect;
+	GtkWidget * button_disconnect;
+	GtkWidget * button_status;
+	GtkWidget * button_quit;
+	GtkWidget * togglebutton_motor_start;
+	GtkWidget * button_motor_stop;
+	GtkWidget * togglebutton_motor_pause;
+	GtkWidget * button_reset_mcu;
+
+	GtkWidget * vscale_rpm;
 
 	gtk_init(&argc, &argv);
 
 	builder = gtk_builder_new();
 	gtk_builder_add_from_file(builder, "layout/gui.xml", NULL);
-	window = GTK_WIDGET(gtk_builder_get_object (builder, "window1"));
-	gtk_builder_connect_signals(builder, NULL);
+	window = GTK_WIDGET(gtk_builder_get_object (builder, "window"));
+	//~ gtk_builder_connect_signals(builder, NULL);
+	g_signal_connect(GTK_OBJECT(window), "destroy", G_CALLBACK(on_window_destroy), NULL);
 
+	togglebutton_connect = GTK_WIDGET(gtk_builder_get_object(builder, "togglebutton_connect"));
+	g_signal_connect(GTK_OBJECT(togglebutton_connect), "toggled", G_CALLBACK(m_togglebutton_connect_toggled), NULL);
+
+	button_disconnect = GTK_WIDGET(gtk_builder_get_object(builder, "button_disconnect"));
+	g_signal_connect(GTK_OBJECT(button_disconnect), "clicked", G_CALLBACK(m_button_disconnect_clicked));
+
+	vscale_rpm = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_rpm"));
+	g_signal_connect(GTK_OBJECT(vscale_rpm), "value-change", G_CALLBACK(m_vscale_rpm_value_changed), NULL);
 
 	gtk_widget_show(window);
 
 	gtk_main();
-	g_object_unref(G_OBJECT (builder));
+	g_object_unref(G_OBJECT(builder));
 
 	serialcom_destroy(&fd);
 	return 0;
 }
+
 //~
 //~ int main_glade(int argc, char ** argv)
 //~ {

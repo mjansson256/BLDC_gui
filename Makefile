@@ -8,7 +8,9 @@ endif
 
 CC = gcc
 
-CFLAGS = -ggdb
+CFLAGS = -ggdb -O0
+CFLAGS += -Wl,--export-dyamic
+CFLAGS += -lgmodule-export-2.0
 
 SOURCEDIR = src
 
@@ -20,10 +22,14 @@ OBJECTS = $(SOURCES:%.c=%.o)
 all: clean $(OBJECTS) compile
 
 compile:
-	$(CC) $(CLFAGS) $(OBJECTS) -o$(PROGRAM) `pkg-config --cflags --libs gtk+-2.0`
+	$(CC) $(CLFAGS) $(OBJECTS) -o$(PROGRAM) `pkg-config --cflags --libs gtk+-2.0` $(LIBS)
+
+mtest: test/test_signal.o
+	$(CC) $(CLFAGS) test/test_signal.o -omtest `pkg-config --cflags --libs gtk+-2.0` $(LIBS)
+
 
 %.o: %.c
-	$(CC) -c -ggdb $(CLFAGS) $< -o$@ `pkg-config --cflags --libs gtk+-2.0`
+	$(CC) -c $(CFLAGS) $< -o$@ `pkg-config --cflags --libs gtk+-2.0`
 
 install: $(PROGRAM)
 	cp $(PRGRAM) $(INSTALLDIR)

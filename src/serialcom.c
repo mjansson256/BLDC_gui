@@ -14,13 +14,13 @@ volatile int STOP = FALSE;
 void signal_handler_IO(int status);
 int wait_flag = TRUE;
 
-int serialcom_init(void)
+int serialcom_init(const char * device)
 {
 	int fd, c, res;
 	struct termios oldtio,newtio;
 	struct sigaction saio;
 	char buf[255];
-	const char * device = "/dev/ttyUSB0";
+	//~ const char * device = "/dev/ttyUSB0";
 
 	/* definition of signal handler */
 	/* TRUE while no signal received */
@@ -80,11 +80,11 @@ void signal_handler_IO(int status)
 	wait_flag = FALSE;
 }
 
-int serialcom_init_old(int * fd)
+int serialcom_init_old(int * fd, const char * device)
 {
 	int rc;
 	struct termios options;
-	const char * device = "/dev/ttyUSB0";
+	//~ const char * device = "/dev/ttyUSB0";
 
 	rc = OK;
 
@@ -125,6 +125,7 @@ int serialcom_init_old(int * fd)
 void serialcom_destroy(int * fd)
 {
 	close(*fd);
+	*fd = NULL;	//No dangling pointers.
 }
 
 

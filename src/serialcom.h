@@ -9,7 +9,8 @@
 #define OK 0
 #endif
 
-#define BAUDRATE B38400
+//~ #define BAUDRATE B38400
+#define BAUDRATE B57600
 
 #include <errno.h>
 #include <fcntl.h>
@@ -21,8 +22,8 @@
 #include <sys/signal.h>
 #include <sys/types.h>
 
-int serialcom_init(void);
-int serialcom_init_old(int * fd);
+int serialcom_init(const char * device);
+int serialcom_init_old(int * fd, const char * device);
 int serialcom_read(int * fd, char * ch);
 int serialcom_write(int * fd, char * str);
 int serialcom_put(int * fd, char ch);
